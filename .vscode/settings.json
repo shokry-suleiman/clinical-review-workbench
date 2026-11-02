@@ -1,5 +1,6 @@
 {
     "conventionalCommits.scopes": [
-        "Feat"
+        "Feat",
+        "fix"
     ]
 }
