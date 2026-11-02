@@ -352,7 +352,6 @@ function parseGeminiResponseResult(
 }
 
 function logGeminiDiagnostic(diagnostic: GeminiDiagnostic) {
-  if (process.env.NODE_ENV !== "development") return;
   console.warn("[Gemini extraction diagnostic]", {
     finishReason: diagnostic.finishReason ?? null,
     responseLength: diagnostic.responseLength,
@@ -419,7 +418,11 @@ export class GeminiExtractionProvider implements ExtractionProvider {
           },
         }),
       });
-    } catch {
+    } catch (error: unknown) {
+      console.error("[Gemini extraction] Provider request failed", {
+        errorName: error instanceof Error ? error.name : "unknown",
+        errorMessage: error instanceof Error ? error.message : String(error),
+      });
       throw new GeminiExtractionError(
         "Gemini could not be reached. Check the connection and retry; no findings were added.",
         502,
@@ -433,6 +436,36 @@ export class GeminiExtractionProvider implements ExtractionProvider {
       } catch {
         providerError = undefined;
       }
+
+      const providerErrorDetails = z
+        .object({
+          error: z
+            .object({
+              code: z.union([z.number(), z.string()]).optional(),
+              status: z.string().optional(),
+              message: z.string().optional(),
+            })
+            .passthrough(),
+        })
+        .passthrough()
+        .safeParse(providerError);
+      console.error("[Gemini extraction] Provider returned an error", {
+        httpStatus: response.status,
+        contentType: response.headers.get("content-type"),
+        requestId:
+          response.headers.get("x-goog-request-id") ??
+          response.headers.get("x-request-id"),
+        retryAfter: response.headers.get("retry-after"),
+        providerCode: providerErrorDetails.success
+          ? providerErrorDetails.data.error.code ?? null
+          : null,
+        providerStatus: providerErrorDetails.success
+          ? providerErrorDetails.data.error.status ?? null
+          : null,
+        providerMessage: providerErrorDetails.success
+          ? providerErrorDetails.data.error.message?.slice(0, 500) ?? null
+          : null,
+      });
 
       if (response.status === 401 || response.status === 403) {
         throw new GeminiExtractionError(
@@ -487,6 +520,15 @@ export class GeminiExtractionProvider implements ExtractionProvider {
         "GEMINI_JSON_PARSE_ERROR",
       );
     }
+
+    console.info("[Gemini extraction] Provider response received", {
+      httpStatus: response.status,
+      contentType: response.headers.get("content-type"),
+      requestId:
+        response.headers.get("x-goog-request-id") ??
+        response.headers.get("x-request-id"),
+      responseLength: responseText.length,
+    });
 
     let responseBody: unknown;
     try {

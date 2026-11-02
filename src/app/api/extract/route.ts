@@ -86,6 +86,10 @@ export async function POST(request: Request) {
     extractedText = await extractPdfText(body.bytes);
   } catch (error: unknown) {
     const parser = error instanceof Error ? error.name : "unknown";
+    console.error("[POST /api/extract] PDF parsing failed", {
+      errorName: parser,
+      errorMessage: error instanceof Error ? error.message : String(error),
+    });
     return NextResponse.json(
       {
         error:
@@ -101,6 +105,9 @@ export async function POST(request: Request) {
 
   const parsedText = UploadTextSchema.safeParse(extractedText);
   if (!parsedText.success) {
+    console.error("[POST /api/extract] PDF contains no supported text", {
+      extractedTextLength: extractedText.length,
+    });
     return NextResponse.json(
       {
         error:
@@ -136,6 +143,7 @@ export async function POST(request: Request) {
     );
 
     if (!validatedResponse) {
+      console.error("[POST /api/extract] Gemini response validation failed");
       return NextResponse.json(
         {
           error:
@@ -175,6 +183,13 @@ export async function POST(request: Request) {
       redactionCounts: deidentified.redactionCounts,
     });
     if (!extractedDocument.success) {
+      console.error(
+        "[POST /api/extract] Extracted document validation failed",
+        extractedDocument.error.issues.map((issue) => ({
+          path: issue.path.map(String).join("."),
+          code: issue.code,
+        })),
+      );
       return NextResponse.json(
         { error: "The extracted document exceeded supported limits." },
         { status: 502, headers: { "Cache-Control": "no-store" } },
@@ -188,6 +203,12 @@ export async function POST(request: Request) {
     });
   } catch (error: unknown) {
     if (error instanceof GeminiExtractionError) {
+      console.error("[POST /api/extract] Gemini extraction failed", {
+        errorName: error.name,
+        errorMessage: error.message,
+        status: error.status,
+        code: error.code,
+      });
       return NextResponse.json(
         {
           error: error.message,
@@ -205,6 +226,10 @@ export async function POST(request: Request) {
       );
     }
 
+    console.error("[POST /api/extract] Unexpected extraction failure", {
+      errorName: error instanceof Error ? error.name : "unknown",
+      errorMessage: error instanceof Error ? error.message : String(error),
+    });
     return NextResponse.json(
       {
         error:
