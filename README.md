@@ -1,81 +1,216 @@
+Claude
+Explaining what the evaluation command reports.
+Explaining what the evaluation command reports.
+npm run evaluate is a script that scores the app’s extraction results against answer keys. It prints three numbers and doesn’t open the app or call Gemini.
+
+I’m going from your README and the evaluation page, since I can’t see the script itself.
+
+What it does
+
+It loads the 8 small synthetic documents (4 English, 4 German). Each has a hand-written answer key listing the findings that should be extracted, with their quotes. These are the “gold labels” on your /eval page.
+It takes a fixed list of candidate outputs, which are pre-written results that stand in for what the model might return. They are not live Gemini answers.
+It compares candidates with the answer key and prints:
+Precision: of the findings produced, how many were correct. Your result is 88.9% (8 of 9 correct, 1 wrong).
+Recall: of the findings that should have been found, how many were found. Your result is 100% (8 of 8, none missed).
+Evidence verification: of the quotes produced, how many really appear in the document. Your result is 100%.
+It checks the evidence number against the 95% threshold. If it drops below that, the script fails. npm test runs the same check, so a broken evidence check would fail your tests.
+Why it exists
+It tests the scoring code and the evidence-checking rules: does the program compute the metrics correctly, and does it catch a quote that isn’t in the document? It’s a safety net for the code, like a unit test.
+
+What it does not do
+It doesn’t measure how good Gemini is. The candidate outputs are fixed, so the numbers will be the same every time, no matter how the real model behaves. Don’t present 88.9% as “the accuracy of the AI”. If someone asks, say: “That tests my scoring pipeline. Live model evaluation on labeled documents is the next step.”
+
+I will not make a demo video just I will add screen shots from review or review pdf
+
+Choosing screenshots that show only synthetic data
+That works. Screenshots are fine instead of a video, and they’re easier for a busy reader to scan.
+
+Which screenshots to take (4 is enough)
+
+Upload screen with the “Draft only, not a medical device” notice visible.
+Findings with evidence: a few findings grouped, each with its source quote. This is the most important one.
+Review in action: some findings accepted, one rejected, one edited. It shows the human step.
+The review PDF, first page. Open the PDF and screenshot it, or link the PDF itself.
+An optional fifth: a short piece of the FHIR JSON (for example the blood pressure Observation with systolic and diastolic). Pick one that’s correct, and skip the ibuprofen medication.
+
+Tips
+
+Use the heart failure note, since its report was clean.
+On Windows, Win+Shift+S takes a screenshot.
+Crop out your browser tabs, bookmarks and anything personal. Make sure no API key or .env file is visible.
+Use only synthetic documents.
+Save them in docs/screenshots/ with simple names: 1-upload.png, 2-findings.png, 3-review.png, 4-report.png.
+Also copy one sample review PDF to docs/sample-review-report.pdf, so people can open it without running the app.
+Replace the video line in the README
+Delete this line:
+
+**Demo video:** `[add link]`
+Add this section right after the first notice (before “The problem”):
+
+markdown
+## Screenshots
+
+| Upload | Findings with source evidence |
+|---|---|
+| ![Upload](docs/screenshots/1-upload.png) | ![Findings](docs/screenshots/2-findings.png) |
+
+| Human review | Review report |
+|---|---|
+| ![Review](docs/screenshots/3-review.png) | ![Report](docs/screenshots/4-report.png) |
+
+A full example report is in [`docs/sample-review-report.pdf`](docs/sample-review-report.pdf).
+When you message the CTO, replace “60-second video: [link]” with the repo link and one sentence: “The README has screenshots and a sample report, so you can see it without running anything.”
+
+If you’d like, I can regenerate the full README file with this section already included.
+
+did you updated readme.md
+
+No. I only gave you the snippet, and the README.md I sent still has the video line. I’ll update the file now.
+
+Ran a command, shared files
+Done. The updated README.md now has a Screenshots section instead of the demo video line. Nothing else changed.
+
+Before you commit it
+Create these files, or the images will show as broken in the README:
+
+docs/screenshots/1-upload.png
+docs/screenshots/2-findings.png
+docs/screenshots/3-review.png
+docs/screenshots/4-report.png
+docs/sample-review-report.pdf (copy one of your review PDFs)
+Also still needed: the samples/ folder with the two synthetic PDFs, which the “Try it” section refers to.
+
+If you only take some of the screenshots, delete the rows for the missing ones so no empty image slots remain.
+
+Readme
+Document
+·MD
+
+You are out of free messages until 10:20 PM
+
+
+Claude is AI and can make mistakes.
+
+
+Readme · MD
 # Clinical Review Workbench
-
-A prototype for reviewing document-derived facts with source evidence and a human decision at every finding. It is not a medical device, is not MDR IIa classified or certified, and has not undergone a C5 audit. It must not be used for care or with real patient information.
-
-## Architecture
-
-The app is a modular Next.js App Router application. The workbench owns the upload/review experience; extraction, review, and export have separate module boundaries under `src/features/document-review`. Their focused tests live in each module's `__tests__` directory, while the feature-level contracts remain at the document-review boundary. Evaluation and shared language have their own feature/shared folders. This keeps the prototype in one deployment while making the provider replaceable through an explicit interface.
-
-```mermaid
-flowchart LR
-  Browser[Review UI<br/>EN / DE] -->|PDF + authorization| Route[Node.js API route]
-  Route --> Parser[PDF text parser]
-  Parser --> Deid[Best-effort identifier redaction]
-  Deid --> Provider[ExtractionProvider interface]
-  Provider --> Gemini[Gemini adapter<br/>server-side API key]
-  Gemini --> Validate[Runtime schema + evidence verification]
-  Validate -->|original text, redacted submitted text,<br/>drafts, model metadata| Browser
-  Browser --> Human[Human edit / accept / reject]
-  Human --> Audit[Session-memory audit events<br/>no document text]
-  Human --> PDF[Review PDF]
-  Human --> FHIR[FHIR R4 Bundle + Provenance<br/>schema validated]
-  Eval[8 synthetic EN / DE cases] --> Harness[Offline evaluation harness]
-  Harness --> Results[/evaluation page]
+ 
+Upload a clinical PDF. The app drafts the key facts from it, shows the exact sentence behind each fact, and lets a person approve, edit or reject every one. Approved facts can be downloaded as a PDF report or as a FHIR file (the standard format health systems use to exchange data).
+ 
+> **Prototype for demonstration only.** It uses fictional documents, is not a medical device, and must never be used with real patient information. It extracts what a document says. It does not diagnose or recommend anything.
+ 
+## Screenshots
+ 
+| Upload | Findings with source evidence |
+|---|---|
+| ![Upload](docs/screenshots/1-upload.png) | ![Findings](docs/screenshots/2-findings.png) |
+ 
+| Human review | Review report |
+|---|---|
+| ![Review](docs/screenshots/3-review.png) | ![Report](docs/screenshots/4-report.png) |
+ 
+A full example report is in [`docs/sample-review-report.pdf`](docs/sample-review-report.pdf).
+ 
+## The problem
+ 
+Clinical documents (visit notes, discharge letters) usually arrive as PDFs. The information inside has to be typed into other systems by hand, which is slow and easy to get wrong.
+ 
+## How it works
+ 
+1. **Upload** a PDF and confirm you are allowed to send it.
+2. **Read:** the server extracts the text and hides personal identifiers such as names and dates of birth.
+3. **Draft:** an AI model (Gemini) proposes findings: conditions, medications, allergies, vitals, lab results, orders, follow-ups and patient instructions.
+4. **Check:** every finding shows a quote from the document. The app verifies that the quote really appears in the text.
+5. **Review:** a person accepts, edits or rejects each finding. Nothing is confirmed until they do.
+6. **Export:** download a PDF report or a FHIR file containing only the accepted findings.
 ```
-
-### Data flow
-
-1. The browser uploads a PDF to `POST /api/extract`, with an explicit authorization confirmation. The route runs on Node.js and enforces the PDF size and text limits.
-2. The server extracts selectable PDF text and applies deterministic, label-based redaction for names, dates of birth, record numbers, and addresses before calling the provider. The Gemini API key stays server-side.
-3. Gemini receives only the redacted text. Its flat structured response is validated finding-by-finding; only findings with valid fields and source evidence are kept. Invalid findings are counted and shown as skipped. Truncated, blocked, empty, malformed-JSON, and schema errors have distinct API codes. Development diagnostics contain response metadata and schema paths only, never document text or model output.
-4. For local review, redaction markers are restored in the source text and evidence excerpts in the current request’s memory. The UI displays both the original extracted text and a collapsed **What was sent to Gemini** panel containing the redacted text.
-5. Findings remain drafts until a reviewer edits, accepts, or rejects them. Only accepted findings that map to the requested FHIR resource types can be exported. Each exported resource has a `Provenance` entry with its verbatim source quote.
-6. Audit events record action, timestamp, model name, prompt version, and finding ID in browser memory for the current document. They do not contain source text or finding values.
-
-### Evaluation
-
-`/eval` contains eight synthetic labeled documents (four English and four German). `npm run evaluate` reports precision, recall, and evidence-verification pass rate. `npm test` also runs this threshold check and exits non-zero if evidence verification drops below 95%.
-
-Current offline fixture results:
-
-| Metric | Result |
-|---|---:|
-| Precision | 88.9% |
-| Recall | 100.0% |
-| Evidence verification pass rate | 100.0% |
-| CI evidence threshold | 95.0% |
-
-These are deterministic metrics for curated candidate outputs, not Gemini quality results. A matching source quote proves only that the quote occurs in the document; it does not prove that the finding is correct or appropriately interpreted.
-
-## Local development
-
-Use Node.js supported by the installed Next.js version and npm.
-
+PDF  ->  extract text  ->  hide identifiers  ->  AI drafts findings
+     ->  verify quotes  ->  human review  ->  PDF report / FHIR file
+```
+ 
+## Example
+ 
+From a heart failure visit note:
+ 
+| The note says | The app drafts | A person decides |
+|---|---|---|
+| "Ibuprofen 400 mg ... Stop - avoid NSAIDs" | Medication: ibuprofen, with that quote | Accept |
+| "Potassium 5.3 mmol/L ... High" | Lab result: potassium 5.3 mmol/L | Accept |
+| "Weigh yourself every morning..." | Patient instruction | Edit or reject |
+ 
+The app does not extract things the note rules out ("denies chest pain") or things that belong to a relative (family history).
+ 
+## Try it
+ 
+Two fictional sample notes are in the `samples/` folder:
+ 
+- `synthetic_clinic_note_realistic.pdf` (diabetes and high blood pressure)
+- `synthetic_clinic_note_2_heart_failure.pdf` (heart failure)
+Upload one, open the evidence for a few findings, accept some, reject one, edit one, then download the PDF report and the FHIR file.
+ 
+## Run it locally
+ 
+You need Node.js and a Gemini API key.
+ 
 ```powershell
 npm install
 Copy-Item .env.example .env.local
-# Set GEMINI_API_KEY in .env.local; never commit the key.
+# Open .env.local and set GEMINI_API_KEY. Never commit this key.
 npm run dev
 ```
+ 
+Other commands: `npm run lint`, `npm run typecheck`, `npm test`, `npm run build`, `npm run evaluate`.
+ 
+## Safety choices
+ 
+- **Human in the loop:** findings are drafts until a person accepts them.
+- **Evidence for every finding:** quote and section, with an automatic check that the quote exists.
+- **Identifiers hidden before sending:** the app shows exactly what was sent to the AI.
+- **Model can be swapped:** Gemini sits behind a simple interface.
+- **No private text in logs:** the audit trail records actions, not document content.
+## Evaluation
+ 
+The `/evaluation` page scores eight small synthetic documents (English and German). The current results are Precision 88.9%, Recall 100% and Evidence verification 100%.
+ 
+**These numbers test the scoring code, not the AI model.** They do not show how accurate Gemini is. Measuring that on labeled documents is the next step.
+ 
+## Known issues
+ 
+- Medication status in the FHIR file is only partly mapped. "Continue" becomes `active`, but words like "Stop" can export as `unknown`. Check each medication's status before relying on an export.
+- Similar conditions worded differently are not always merged (for example, "heart failure" and "acute on chronic heart failure").
+- Some details are not extracted, such as ejection fraction values and physical exam findings.
+- Lab flags (High/Low) appear in the quote but not as a separate field.
+- Scanned PDFs are not supported (there is no OCR).
+## Planned next
+ 
+1. Finish medication status mapping.
+2. Merge similar conditions and separate symptoms from diagnoses.
+3. Test the real AI model on expert-labeled English and German documents.
+4. Add a German discharge letter sample.
+5. Add structured lab flags and optional code suggestions (ICD-10-GM, LOINC, ATC).
+6. Add reviewer login and a permanent audit trail.
+## Limitations
+ 
+- **Never use real patient data.** Hiding identifiers is best-effort and can miss things.
+- **Not production-ready.** There is no login, access control, permanent storage or monitoring. The audit trail lives only in the browser session.
+- **Hosting:** before real use, the AI would need an EU-hosted setup with a data-processing agreement and no-training terms. This prototype does not provide that.
+- **FHIR output** is checked against the standard R4 schemas, not against a specific health system or implementation guide.
+- **Regulation:** this repository does not establish compliance with any regulation or certification. That needs qualified legal, clinical and security review.
+## Technical overview
+ 
+Next.js (App Router) with TypeScript. Code for extraction, review and export is split into separate modules under `src/features/document-review`, each with its own tests. The upload goes to `POST /api/extract`, which runs on the server so the API key never reaches the browser.
+ 
+All sample documents are fictional and created for software testing.
+ 
 
-The FHIR export is available after at least one supported finding is accepted. `visit_preparation` findings are not forced into an unrelated FHIR resource and are omitted from this export. Extraction returns categories, values, evidence, sections, and optional explicitly documented details; it does not generate terminology-code suggestions.
 
-## Limitations and future work
 
-- **De-identification is best-effort, not a guarantee.** It masks common labeled fields; it is not a validated NER system, may miss identifiers in free text or images, and may remove too much text. Do not send real patient data.
-- The current provider uses the configured Gemini API directly. Before any real-data use, establish an approved EU-region production deployment, contractual no-training/data-use terms, retention and deletion controls, a data-processing agreement, subprocessor review, and verified logging controls. EU residency and no-training behavior are future requirements to verify—not current properties of this prototype.
-- No authentication, authorization service, tenant isolation, rate limiting, durable storage, or incident monitoring is implemented. The upload confirmation is a UI/API guard, not identity or access control.
-- The audit view is ephemeral browser state, not an immutable or attributable audit trail. Production requires authenticated reviewer identity, durable tamper-evident audit storage, retention policy, and access controls—without storing document contents in general logs.
-- FHIR output is schema-checked against the R4 resource and Bundle schemas used by the app. It is not validated against a jurisdictional implementation guide, terminology server, receiving EHR, or a full conformance test suite.
-- The offline evaluation set validates metric computation and evidence rules only; it does not establish clinical performance. Expand it with governance, expert annotation, representative language variation, bias/error analysis, and independent validation before making performance claims.
-- Regulatory classification and obligations depend on intended purpose and deployment. MDR IIa suitability, C5 audit scope, privacy, security, and clinical safety require qualified legal, regulatory, clinical, and security review. This repository does not establish compliance.
 
-## Commands
 
-```powershell
-npm run lint
-npm run typecheck
-npm test
-npm run build
-npm run evaluate
-```
+
+
+
+
+
+
+Claude finished the response

@@ -352,6 +352,7 @@ function parseGeminiResponseResult(
 }
 
 function logGeminiDiagnostic(diagnostic: GeminiDiagnostic) {
+  if (process.env.NODE_ENV !== "development") return;
   console.warn("[Gemini extraction diagnostic]", {
     finishReason: diagnostic.finishReason ?? null,
     responseLength: diagnostic.responseLength,
