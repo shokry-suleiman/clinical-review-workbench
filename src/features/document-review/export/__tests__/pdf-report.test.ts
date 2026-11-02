@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { extractPdfText } from "./pdf-document";
-import { createReviewPdf } from "./pdf-report";
-import type { ReviewFinding } from "./review-state";
+import { extractPdfText } from "../../extraction/pdf-document";
+import { createReviewPdf } from "../pdf-report";
+import type { ReviewFinding } from "../../review/review-state";
 
 describe("review PDF generation", () => {
   it("includes each review state and its supporting excerpt", async () => {

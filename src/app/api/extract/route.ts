@@ -5,10 +5,12 @@ import {
   validateExtractionResponse,
 } from "@/features/document-review/contracts";
 import {
-  extractWithGemini,
+  GeminiExtractionProvider,
   GeminiExtractionError,
-} from "@/features/document-review/gemini-extractor";
-import { extractPdfText } from "@/features/document-review/pdf-document";
+} from "@/features/document-review/extraction/gemini-extractor";
+import type { ExtractionProvider } from "@/features/document-review/extraction/extraction-provider";
+import { deidentifyDocument } from "@/features/document-review/extraction/deidentification";
+import { extractPdfText } from "@/features/document-review/extraction/pdf-document";
 
 export const runtime = "nodejs";
 const MAX_UPLOAD_BYTES = 10_000_000;
@@ -116,23 +118,61 @@ export async function POST(request: Request) {
     );
   }
 
+  const deidentified = deidentifyDocument(parsedText.data);
+  const submittedText = UploadTextSchema.safeParse(deidentified.text);
+  if (!submittedText.success) {
+    return NextResponse.json(
+      { error: "The de-identified document exceeds supported text limits." },
+      { status: 422, headers: { "Cache-Control": "no-store" } },
+    );
+  }
+
   try {
-    const response = await extractWithGemini(parsedText.data, apiKey);
-    const validatedResponse = validateExtractionResponse(response, parsedText.data);
+    const provider: ExtractionProvider = new GeminiExtractionProvider(apiKey);
+    const response = await provider.extract(submittedText.data);
+    const validatedResponse = validateExtractionResponse(
+      response,
+      submittedText.data,
+    );
 
     if (!validatedResponse) {
       return NextResponse.json(
         {
           error:
-            "Gemini returned unsupported source evidence. No findings were added.",
+            "Gemini returned a response that did not match the required schema. No findings were added.",
+          code: "GEMINI_SCHEMA_VALIDATION_ERROR",
         },
         { status: 502, headers: { "Cache-Control": "no-store" } },
       );
     }
 
+    const restoredFindings = validatedResponse.findings.map((finding, index) => ({
+      ...finding,
+      id: `finding-${index + 1}`,
+      value: deidentified.restore(finding.value),
+      ...(finding.name ? { name: deidentified.restore(finding.name) } : {}),
+      sourceExcerpt: deidentified.restore(finding.sourceExcerpt),
+      ...(finding.sourceSection
+        ? { sourceSection: deidentified.restore(finding.sourceSection) }
+        : {}),
+      ...(finding.dose ? { dose: deidentified.restore(finding.dose) } : {}),
+      ...(finding.frequency
+        ? { frequency: deidentified.restore(finding.frequency) }
+        : {}),
+      ...(finding.documentedStatus
+        ? { documentedStatus: deidentified.restore(finding.documentedStatus) }
+        : {}),
+      ...(finding.unit ? { unit: deidentified.restore(finding.unit) } : {}),
+      ...(finding.flag ? { flag: deidentified.restore(finding.flag) } : {}),
+    }));
     const extractedDocument = ExtractedDocumentSchema.safeParse({
       sourceText: parsedText.data,
-      findings: validatedResponse.findings,
+      submittedText: submittedText.data,
+      findings: restoredFindings,
+      findingsSkipped: validatedResponse.findingsSkipped,
+      modelName: provider.metadata.modelName,
+      promptVersion: provider.metadata.promptVersion,
+      redactionCounts: deidentified.redactionCounts,
     });
     if (!extractedDocument.success) {
       return NextResponse.json(
@@ -149,8 +189,19 @@ export async function POST(request: Request) {
   } catch (error: unknown) {
     if (error instanceof GeminiExtractionError) {
       return NextResponse.json(
-        { error: error.message },
-        { status: error.status, headers: { "Cache-Control": "no-store" } },
+        {
+          error: error.message,
+          ...(error.code ? { code: error.code } : {}),
+        },
+        {
+          status: error.status,
+          headers: {
+            "Cache-Control": "no-store",
+            ...(error.retryAfterSeconds
+              ? { "Retry-After": String(error.retryAfterSeconds) }
+              : {}),
+          },
+        },
       );
     }
 

@@ -8,9 +8,11 @@
     "start": "next start",
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run"
+    "test": "vitest run && npm run evaluate",
+    "evaluate": "tsx scripts/evaluate.ts"
   },
   "dependencies": {
+    "@solarahealth/fhir-r4": "^1.2.0",
     "next": "16.4.3",
     "pdf-lib": "^1.17.1",
     "pdf-parse": "^2.4.5",
@@ -26,6 +28,7 @@
     "eslint": "^9",
     "eslint-config-next": "16.4.3",
     "tailwindcss": "^4",
+    "tsx": "^4.23.15",
     "typescript": "^5",
     "vitest": "^3.2.4"
   }

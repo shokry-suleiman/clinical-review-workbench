@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { extractFindings } from "./extraction-service";
+import { extractFindings } from "../extraction-service";
 
 afterEach(() => {
   vi.unstubAllGlobals();
@@ -14,6 +14,7 @@ describe("extraction service response validation", () => {
         new Response(
           JSON.stringify({
             sourceText,
+            submittedText: sourceText,
             findings: [
               {
                 id: "1",
@@ -23,6 +24,15 @@ describe("extraction service response validation", () => {
                 sourceSection: "Follow-up plan",
               },
             ],
+            findingsSkipped: 0,
+            modelName: "gemini-test",
+            promptVersion: "test-v1",
+            redactionCounts: {
+              name: 0,
+              date_of_birth: 0,
+              mrn: 0,
+              address: 0,
+            },
           }),
           { status: 200 },
         ),

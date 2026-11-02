@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { PDFDocument, StandardFonts } from "pdf-lib";
-import { extractPdfText } from "./pdf-document";
+import { extractPdfText } from "../pdf-document";
 
 describe("PDF text extraction", () => {
   it("extracts selectable text from a PDF", async () => {

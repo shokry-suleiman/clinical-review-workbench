@@ -5,7 +5,8 @@ import {
   type PDFFont,
   type PDFPage,
 } from "pdf-lib";
-import type { ReviewFinding } from "./review-state";
+import type { ReviewFinding } from "../review/review-state";
+import { normalizeEvidenceQuote } from "../contracts";
 
 const PAGE_WIDTH = 595.28;
 const PAGE_HEIGHT = 841.89;
@@ -74,6 +75,17 @@ export async function createReviewPdf(
     y -= gap;
   }
 
+  function startFinding() {
+    const spacing = 12;
+    const lineHeight = 12 * 1.45;
+    if (y - spacing - lineHeight < MARGIN) {
+      page = pdf.addPage([PAGE_WIDTH, PAGE_HEIGHT]);
+      y = PAGE_HEIGHT - MARGIN;
+    } else {
+      y -= spacing;
+    }
+  }
+
   drawBlock("Clinical Document Review", bold, 21, PRIMARY_COLOR, 8);
   drawBlock(`Source document: ${documentName}`, regular, 10, MUTED_COLOR, 4);
   drawBlock(
@@ -96,15 +108,34 @@ export async function createReviewPdf(
   }
 
   findings.forEach((finding, index) => {
-    drawBlock(`${index + 1}. ${finding.field} - ${finding.status.toUpperCase()}`, bold, 12, PRIMARY_COLOR, 4);
-    drawBlock(finding.editedValue, regular, 11, BODY_COLOR, 4);
+    startFinding();
+    const value =
+      finding.field === "observation" && finding.name
+        ? `${finding.name} ${finding.editedValue}${finding.unit ? ` ${finding.unit}` : ""}`
+        : finding.editedValue;
     drawBlock(
-      `Source evidence${finding.sourceSection ? ` (${finding.sourceSection})` : ""}: "${finding.sourceExcerpt}"`,
-      regular,
-      9,
-      MUTED_COLOR,
+      `${index + 1}. ${finding.field} - ${finding.status.toUpperCase()} ${value}`,
+      bold,
       12,
+      PRIMARY_COLOR,
+      4,
     );
+    (
+      finding.evidence ?? [
+        {
+          quote: normalizeEvidenceQuote(finding.sourceExcerpt),
+          section: finding.sourceSection,
+        },
+      ]
+    ).forEach((evidence) => {
+      drawBlock(
+        `Source evidence${evidence.section ? ` (${evidence.section})` : ""}: "${normalizeEvidenceQuote(evidence.quote)}"`,
+        regular,
+        9,
+        MUTED_COLOR,
+        12,
+      );
+    });
   });
 
   return pdf.save();

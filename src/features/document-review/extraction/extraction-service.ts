@@ -3,7 +3,7 @@ import {
   ExtractedDocumentSchema,
   validateExtractionResponse,
   type ExtractedDocument,
-} from "./contracts";
+} from "../contracts";
 
 export type ExtractionService = (
   file: File,
@@ -46,17 +46,28 @@ export async function extractFindings(
   }
 
   const parsed = ExtractedDocumentSchema.safeParse(body);
-  if (
-    !parsed.success ||
-    !validateExtractionResponse(
-      { findings: parsed.data.findings },
-      parsed.data.sourceText,
-    )
-  ) {
+  if (!parsed.success) {
     throw new Error(
       "The extraction service returned malformed data or unsupported source evidence. No findings were added.",
     );
   }
 
-  return parsed.data;
+  const validatedResponse = validateExtractionResponse(
+    {
+      findings: parsed.data.findings,
+      findingsSkipped: parsed.data.findingsSkipped,
+    },
+    parsed.data.sourceText,
+  );
+  if (!validatedResponse) {
+    throw new Error(
+      "The extraction service returned malformed data or unsupported source evidence. No findings were added.",
+    );
+  }
+
+  return {
+    ...parsed.data,
+    findings: validatedResponse.findings,
+    findingsSkipped: validatedResponse.findingsSkipped,
+  };
 }
