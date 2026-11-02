@@ -8,12 +8,12 @@ Upload a clinical PDF. The app drafts the key facts from it, shows the exact sen
 
 | Upload | Findings with source evidence |
 |---|---|
-| ![Upload](docs/screenshots/1-upload.png) | ![Findings](docs/screenshots/2-findings.png) |
-
+| ![Upload](docs/screenshots/Upload.png) | ![Findings](docs/screenshots/Findings.png) |
+<!--
 | Human review | Review report |
 |---|---|
 | ![Review](docs/screenshots/3-review.png) | ![Report](docs/screenshots/4-report.png) |
-
+-->
 A full example report is in [`docs/sample-review-report.pdf`](docs/sample-review-report.pdf).
 
 ## The problem
