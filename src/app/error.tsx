@@ -9,10 +9,10 @@ export default function Error({
   return (
     <main className="mx-auto flex min-h-screen max-w-2xl flex-col items-start justify-center px-6">
       <p className="text-sm font-bold uppercase tracking-[0.16em] text-primary">
-        Clinical Review Workbench
+        Clinical document review
       </p>
       <h1 className="mt-4 text-3xl font-semibold tracking-tight text-ink">
-        This demo encountered an unexpected error.
+        An unexpected error occurred.
       </h1>
       <p className="mt-3 max-w-lg leading-7 text-muted">
         No draft findings were confirmed. You can try loading the page again.

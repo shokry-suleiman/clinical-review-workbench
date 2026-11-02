@@ -1,16 +1,14 @@
 import {
   ServiceErrorSchema,
+  ExtractedDocumentSchema,
   validateExtractionResponse,
-  type ExtractionResponse,
-  type Scenario,
+  type ExtractedDocument,
 } from "./contracts";
-import { SYNTHETIC_SOURCE_DOCUMENT } from "./source-document";
 
 export type ExtractionService = (
-  scenario: Scenario,
+  file: File,
   signal: AbortSignal,
-  documentText?: string,
-) => Promise<ExtractionResponse>;
+) => Promise<ExtractedDocument>;
 
 async function readJson(response: Response): Promise<unknown> {
   try {
@@ -22,28 +20,20 @@ async function readJson(response: Response): Promise<unknown> {
 }
 
 export async function extractFindings(
-  scenario: Scenario,
+  file: File,
   signal: AbortSignal,
-  documentText?: string,
   endpoint = "/api/extract",
-): Promise<ExtractionResponse> {
-  const response =
-    documentText === undefined
-      ? await fetch(
-          `${endpoint}?scenario=${encodeURIComponent(scenario)}`,
-          {
-            method: "GET",
-            cache: "no-store",
-            signal,
-          },
-        )
-      : await fetch(endpoint, {
-          method: "POST",
-          cache: "no-store",
-          headers: { "Content-Type": "text/plain; charset=utf-8" },
-          body: documentText,
-          signal,
-        });
+): Promise<ExtractedDocument> {
+  const response = await fetch(endpoint, {
+    method: "POST",
+    cache: "no-store",
+    headers: {
+      "Content-Type": "application/pdf",
+      "X-Authorized-To-Send": "true",
+    },
+    body: file,
+    signal,
+  });
   const body = await readJson(response);
 
   if (!response.ok) {
@@ -55,15 +45,18 @@ export async function extractFindings(
     );
   }
 
-  const parsed = validateExtractionResponse(
-    body,
-    documentText ?? SYNTHETIC_SOURCE_DOCUMENT.text,
-  );
-  if (!parsed) {
+  const parsed = ExtractedDocumentSchema.safeParse(body);
+  if (
+    !parsed.success ||
+    !validateExtractionResponse(
+      { findings: parsed.data.findings },
+      parsed.data.sourceText,
+    )
+  ) {
     throw new Error(
       "The extraction service returned malformed data or unsupported source evidence. No findings were added.",
     );
   }
 
-  return parsed;
+  return parsed.data;
 }

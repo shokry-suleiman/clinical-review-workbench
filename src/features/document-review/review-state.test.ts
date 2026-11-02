@@ -14,7 +14,6 @@ import {
   extractWithGemini,
   parseGeminiResponse,
 } from "./gemini-extractor";
-import { extractSyntheticFindings } from "./synthetic-extractor";
 
 const validFinding: ExtractionFinding = {
   id: "follow-up-01",
@@ -54,7 +53,7 @@ describe("extraction response validation", () => {
     expect(result.success).toBe(false);
   });
 
-  it("rejects evidence that is not present in the synthetic source", () => {
+  it("rejects evidence that is not present in the source document", () => {
     const result = validateExtractionResponse({
       findings: [
         {
@@ -62,56 +61,17 @@ describe("extraction response validation", () => {
           sourceExcerpt: "An unsupported instruction.",
         },
       ],
-    }, "Synthetic document with no supporting instruction.");
+    }, "Document with no supporting instruction.");
 
     expect(result).toBeUndefined();
   });
 
-  it("validates source evidence against the uploaded document text", () => {
-    const uploadedText =
-      "Schedule a follow-up visit in 3 weeks. Bring the symptom journal to the next visit.";
-    const findings = extractSyntheticFindings(uploadedText);
-
-    expect(
-      validateExtractionResponse({ findings }, uploadedText)?.findings,
-    ).toEqual(findings);
-  });
-
   it("accepts only non-empty text within the upload size limit", () => {
-    expect(UploadTextSchema.safeParse("Synthetic visit note").success).toBe(
+    expect(UploadTextSchema.safeParse("Document content").success).toBe(
       true,
     );
     expect(UploadTextSchema.safeParse(" \n ").success).toBe(false);
     expect(UploadTextSchema.safeParse("x".repeat(50_001)).success).toBe(false);
-  });
-});
-
-describe("synthetic text extraction", () => {
-  it("returns only supported phrases with exact source excerpts", () => {
-    const documentText =
-      "Please schedule a follow-up visit in 3 weeks. Bring the symptom journal to the next visit.";
-    const findings = extractSyntheticFindings(documentText);
-
-    expect(findings).toEqual([
-      {
-        id: "uploaded-follow-up",
-        field: "follow_up",
-        value: "Schedule a follow-up visit in 3 weeks",
-        sourceExcerpt: "Please schedule a follow-up visit in 3 weeks.",
-      },
-      {
-        id: "uploaded-preparation",
-        field: "visit_preparation",
-        value: "Bring the symptom journal to the next visit",
-        sourceExcerpt: "Bring the symptom journal to the next visit.",
-      },
-    ]);
-  });
-
-  it("does not invent findings when supported phrases are absent", () => {
-    expect(
-      extractSyntheticFindings("A fictional note without supported phrases."),
-    ).toEqual([]);
   });
 });
 
@@ -173,7 +133,7 @@ describe("Gemini response validation", () => {
     );
 
     await expect(
-      extractWithGemini("Synthetic note.", "test-server-api-key"),
+      extractWithGemini("Document text.", "test-server-api-key"),
     ).rejects.toMatchObject({ status: 503 });
   });
 
@@ -212,7 +172,7 @@ describe("Gemini response validation", () => {
     expect(
       parseGeminiResponse(
         { candidates: [{ content: { parts: [{ text: "not json" }] } }] },
-        "Synthetic source.",
+        "Source document.",
       ),
     ).toBeUndefined();
 
