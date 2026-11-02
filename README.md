@@ -8,7 +8,7 @@ Upload a clinical PDF. The app drafts the key facts from it, shows the exact sen
 
 | Upload | Findings with source evidence |
 |---|---|
-| ![Upload](docs/screenshots/Upload.png) | ![Findings](docs/screenshots/Findings.png) |
+| ![Upload](docs/screenshots/Upload.PNG) | ![Findings](docs/screenshots/Findings.PNG) |
 <!--
 | Human review | Review report |
 |---|---|
