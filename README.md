@@ -1,5 +1,7 @@
 # Clinical Review Workbench
 
+**Live demo:** [clinical-review-workbench-tawny.vercel.app](https://clinical-review-workbench-tawny.vercel.app/)
+
 Upload a clinical PDF. The app drafts the key facts from it, shows the exact sentence behind each fact, and lets a person approve, edit or reject every one. Approved facts can be downloaded as a PDF report or as a FHIR file (the standard format health systems use to exchange data).
 
 > **Prototype for demonstration only.** It uses fictional documents, is not a medical device, and must never be used with real patient information. It extracts what a document says. It does not diagnose or recommend anything.
@@ -47,6 +49,8 @@ From a heart failure visit note:
 The app does not extract things the note rules out ("denies chest pain") or things that belong to a relative (family history).
 
 ## Try it
+
+Try it online at the [live demo](https://clinical-review-workbench-tawny.vercel.app/), or run it locally (see below).
 
 Two fictional sample notes are in the `samples/` folder:
 
